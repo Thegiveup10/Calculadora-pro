@@ -147,31 +147,38 @@ def resta_visual_st(a, b):
     
     return f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">{nota}{str_prestamos}\n{str_a_linea}\n{str_b_linea}\n<span style="color: #888;">{separador}</span>\n<span style="color: #4b8bff; font-weight: bold;">{str_res}</span></div>"""
 
-def multiplicacion_visual_st(a, b):
-    str_a = str(abs(a))
-    num_b = abs(b)
-    acarreos = [''] * (len(str_a) + 1)
-    resultado = []
-    acarreo_actual = 0
-    for i in range(len(str_a) - 1, -1, -1):
-        prod = int(str_a[i]) * num_b + acarreo_actual
-        resultado.append(str(prod % 10))
-        acarreo_actual = prod // 10
-        if acarreo_actual > 0: acarreos[i] = str(acarreo_actual)
-            
-    if acarreo_actual > 0: resultado.append(str(acarreo_actual))
-    resultado_final = "".join(resultado[::-1])
+def multiplicacion_binaria_visual_st(a_dec, b_dec):
+    bin_a = bin(abs(a_dec))[2:]
+    bin_b = bin(abs(b_dec))[2:]
+    bin_res = bin(abs(a_dec) * abs(b_dec))[2:]
     
-    ancho = 3
-    str_acarreos = "".join([f"<span style='color: #ff4b4b; font-weight: bold;'>{c.rjust(ancho)}</span>" if c else " " * ancho for c in acarreos[:-1]])
-    str_acarreos = "   " + str_acarreos
-    str_a_linea = "   " + "".join([c.rjust(ancho) for c in str_a])
-    str_b_linea = "x  " + " " * (ancho * (len(str_a) - 1)) + str(num_b).rjust(ancho)
-    separador = "-" * (len(str_a_linea) + 2)
-    res_limpio = "".join([c.rjust(ancho) for c in resultado_final])
-    str_res = " " * max(0, len(separador) - len(res_limpio) - 2) + res_limpio
-
-    return f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">{str_acarreos}\n{str_a_linea}\n{str_b_linea}\n<span style="color: #888;">{separador}</span>\n<span style="color: #4b8bff; font-weight: bold;">  {str_res}</span></div>"""
+    # Ancho máximo basado en el resultado final para alinear todo a la derecha
+    max_len = len(bin_res) + 4 
+    
+    linea_a = bin_a.rjust(max_len)
+    linea_b = ("x " + bin_b).rjust(max_len)
+    separador1 = ("-" * (len(bin_b) + 2)).rjust(max_len)
+    
+    html = f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">
+{linea_a}
+{linea_b}
+<span style="color: #888;">{separador1}</span>
+"""
+    # Generar los productos parciales desplazados
+    for i, bit in enumerate(reversed(bin_b)):
+        if bit == '1':
+            pp = bin_a + (" " * i)
+        else:
+            pp = ("0" * len(bin_a)) + (" " * i)
+        html += f"{pp.rjust(max_len)}\n"
+        
+    separador2 = ("-" * len(bin_res)).rjust(max_len)
+    linea_res = bin_res.rjust(max_len)
+    
+    html += f"""<span style="color: #888;">{separador2}</span>
+<span style="color: #4b8bff; font-weight: bold;">{linea_res}</span></div>"""
+    
+    return html
 
 def division_binaria_visual_st(dividendo_dec, divisor_dec):
     if divisor_dec == 0:
@@ -186,33 +193,24 @@ def division_binaria_visual_st(dividendo_dec, divisor_dec):
     
     for i in range(len(dvd)):
         bit_actual = dvd[i]
-        # Acumular residuo quitando ceros a la izquierda
         residuo_actual = (residuo_actual + bit_actual).lstrip('0') or '0'
         val_residuo = int(residuo_actual, 2)
-        
-        offset_base = len(dvs) + 3 # Espacio para el divisor y la barrita "10 | "
+        offset_base = len(dvs) + 3
         
         if val_residuo >= abs(divisor_dec):
             cociente += "1"
-            
-            # Alinear los números para dibujar la resta
             spaces_subtrahend = " " * (offset_base + i - len(dvs) + 1)
             html_steps += f"{spaces_subtrahend}-<span style='color: #ccc;'>{dvs}</span>\n"
-            
             separador = "-" * len(dvs)
             html_steps += f"{spaces_subtrahend} <span style='color: #888;'>{separador}</span>\n"
             
-            # Realizar la resta
             residuo_actual = bin(val_residuo - abs(divisor_dec))[2:]
-            
-            # Dibujar el nuevo residuo en rojo
             spaces_residuo = " " * (offset_base + i - len(residuo_actual) + 1)
             html_steps += f"{spaces_residuo} <span style='color: #ff4b4b; font-weight: bold;'>{residuo_actual}</span>\n"
         else:
             cociente += "0"
             
     if not cociente: cociente = "0"
-    
     offset_base = len(dvs) + 3
     espacios_cociente = " " * offset_base
     
@@ -388,8 +386,8 @@ with tab_operaciones:
                     st.markdown("*Nota: La resta visual se muestra en sistema Decimal.*")
                     st.markdown(resta_visual_st(dec1, dec2), unsafe_allow_html=True)
                 elif operacion == "×":
-                    st.markdown("*Nota: La multiplicación visual se muestra en sistema Decimal.*")
-                    st.markdown(multiplicacion_visual_st(dec1, dec2), unsafe_allow_html=True)
+                    st.markdown("*Nota: La multiplicación visual se muestra en sistema Binario.*")
+                    st.markdown(multiplicacion_binaria_visual_st(dec1, dec2), unsafe_allow_html=True)
                 elif operacion == "÷":
                     st.markdown("*Nota: La división visual se muestra en sistema Binario.*")
                     st.markdown(division_binaria_visual_st(dec1, dec2), unsafe_allow_html=True)
@@ -401,21 +399,4 @@ with tab_operaciones:
                 if base1 != "Decimal":
                     proc.append(f"PASO 1: Convertir el primer número a Decimal:\n" + explicar_a_decimal(base1, num1, dec1) + "\n" + "="*40)
                 if base2 != "Decimal":
-                    proc.append(f"PASO 2: Convertir el segundo número a Decimal:\n" + explicar_a_decimal(base2, num2, dec2) + "\n" + "="*40)
-                    
-                proc.append(f"PASO 3: Realizar la operación en Decimal:")
-                if operacion == "÷":
-                    proc.append(f"{dec1} ÷ {dec2} = {res_dec} (Cociente) y sobra {resto_dec} (Resto)")
-                else:
-                    proc.append(f"{dec1} {operacion} {dec2} = {res_dec}")
-                proc.append("="*40)
-                
-                if base_res != "Decimal":
-                    proc.append(f"PASO 4: Convertir el resultado ({res_dec}) a {base_res}:\n" + explicar_decimal_a(base_res, res_dec))
-                else:
-                    proc.append(f"El resultado ya está en Decimal: {res_dec}")
-                
-                st.code("\n\n".join(proc), language="text")
-                
-        except ValueError:
-            st.error("❌ Hay un error. Revisa que los números escritos coincidan con las bases seleccionadas.")
+                    proc.append(f"PASO 2
