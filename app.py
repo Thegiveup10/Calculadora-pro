@@ -80,6 +80,7 @@ def explicar_valor_posicional(origen, destino, valor, numero_decimal):
         partes.append(f"{digito} * {base}^{i} = {valor_digito} * {base**i} = {valor_digito * (base**i)}")
     return f"Valor posicional de {destino} {resultado}:\n\n" + "\n".join(partes)
 
+
 # ---------------------------------------------------------
 # FUNCIONES VISUALES DE OPERACIONES (HTML Oscuro)
 # ---------------------------------------------------------
@@ -149,11 +150,9 @@ def resta_visual_st(a, b):
 def multiplicacion_visual_st(a, b):
     str_a = str(abs(a))
     num_b = abs(b)
-    
     acarreos = [''] * (len(str_a) + 1)
     resultado = []
     acarreo_actual = 0
-    
     for i in range(len(str_a) - 1, -1, -1):
         prod = int(str_a[i]) * num_b + acarreo_actual
         resultado.append(str(prod % 10))
@@ -174,25 +173,60 @@ def multiplicacion_visual_st(a, b):
 
     return f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">{str_acarreos}\n{str_a_linea}\n{str_b_linea}\n<span style="color: #888;">{separador}</span>\n<span style="color: #4b8bff; font-weight: bold;">  {str_res}</span></div>"""
 
-def division_visual_st(dividendo, divisor):
-    dividendo, divisor = abs(dividendo), abs(divisor)
-    str_div = str(dividendo)
+def division_binaria_visual_st(dividendo_dec, divisor_dec):
+    if divisor_dec == 0:
+        return "<p style='color: #ff4b4b; font-weight: bold;'>❌ Error: División por cero</p>"
+    
+    dvd = bin(abs(dividendo_dec))[2:]
+    dvs = bin(abs(divisor_dec))[2:]
+    
     cociente = ""
-    resto_actual = 0
+    residuo_actual = ""
+    html_steps = ""
     
-    html = f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;"><b>{dividendo} ÷ {divisor}</b>\n<span style="color: #888;">--------------------</span>\n"""
-    
-    for i, digito in enumerate(str_div):
-        valor_actual = resto_actual * 10 + int(digito)
-        digito_cociente = valor_actual // divisor
-        resto_actual = valor_actual % divisor
-        cociente += str(digito_cociente)
-        espacios = " " * (i * 2)
-        html += f"{espacios}Bajamos : {valor_actual}\n{espacios}Resto   : <span style='color: #ff4b4b; font-weight: bold;'>{resto_actual}</span>\n\n"
+    for i in range(len(dvd)):
+        bit_actual = dvd[i]
+        # Acumular residuo quitando ceros a la izquierda
+        residuo_actual = (residuo_actual + bit_actual).lstrip('0') or '0'
+        val_residuo = int(residuo_actual, 2)
         
-    cociente = str(int(cociente)) if cociente.strip('0') else "0"
-    html += f"""<span style="color: #888;">--------------------</span>\nResultado: <span style="color: #4b8bff; font-weight: bold;">{cociente}</span>\nResto Fin: <span style="color: #ff4b4b; font-weight: bold;">{resto_actual}</span></div>"""
+        offset_base = len(dvs) + 3 # Espacio para el divisor y la barrita "10 | "
+        
+        if val_residuo >= abs(divisor_dec):
+            cociente += "1"
+            
+            # Alinear los números para dibujar la resta
+            spaces_subtrahend = " " * (offset_base + i - len(dvs) + 1)
+            html_steps += f"{spaces_subtrahend}-<span style='color: #ccc;'>{dvs}</span>\n"
+            
+            separador = "-" * len(dvs)
+            html_steps += f"{spaces_subtrahend} <span style='color: #888;'>{separador}</span>\n"
+            
+            # Realizar la resta
+            residuo_actual = bin(val_residuo - abs(divisor_dec))[2:]
+            
+            # Dibujar el nuevo residuo en rojo
+            spaces_residuo = " " * (offset_base + i - len(residuo_actual) + 1)
+            html_steps += f"{spaces_residuo} <span style='color: #ff4b4b; font-weight: bold;'>{residuo_actual}</span>\n"
+        else:
+            cociente += "0"
+            
+    if not cociente: cociente = "0"
+    
+    offset_base = len(dvs) + 3
+    espacios_cociente = " " * offset_base
+    
+    html = f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">
+{espacios_cociente}<span style="color: #4b8bff; font-weight: bold;">{cociente.lstrip('0') or '0'}</span>
+{espacios_cociente}<span style="color: #888;">{'-' * len(dvd)}</span>
+{dvs} | {dvd}
+{html_steps}
+<span style="color: #888;">--------------------</span>
+<b>Residuo Final:</b> <span style="color: #ff4b4b; font-weight: bold;">{residuo_actual or '0'}</span> (Binario)
+<b>Cociente:</b>      <span style="color: #4b8bff; font-weight: bold;">{cociente.lstrip('0') or '0'}</span> (Binario)
+</div>"""
     return html
+
 
 # --- FUNCIONES DE CONTROL DE MEMORIA ---
 def guardar_m1(valor): st.session_state.m1 = valor
@@ -345,7 +379,7 @@ with tab_operaciones:
                 st.divider()
                 st.subheader("📝 Procedimiento de la Operación")
                 
-                # --- VISUALIZACIÓN MAGNÍFICA (AQUÍ ENTRAN TUS FUNCIONES) ---
+                # --- VISUALIZACIÓN MAGNÍFICA ---
                 st.markdown(f"**🌟 Procedimiento Visual:**")
                 if operacion == "+":
                     st.markdown("*Nota: La suma visual se muestra en sistema Binario.*")
@@ -357,8 +391,8 @@ with tab_operaciones:
                     st.markdown("*Nota: La multiplicación visual se muestra en sistema Decimal.*")
                     st.markdown(multiplicacion_visual_st(dec1, dec2), unsafe_allow_html=True)
                 elif operacion == "÷":
-                    st.markdown("*Nota: La división visual se muestra en sistema Decimal.*")
-                    st.markdown(division_visual_st(dec1, dec2), unsafe_allow_html=True)
+                    st.markdown("*Nota: La división visual se muestra en sistema Binario.*")
+                    st.markdown(division_binaria_visual_st(dec1, dec2), unsafe_allow_html=True)
                 
                 st.write("") # Espacio
                 
