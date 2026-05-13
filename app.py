@@ -151,33 +151,22 @@ def multiplicacion_binaria_visual_st(a_dec, b_dec):
     bin_a = bin(abs(a_dec))[2:]
     bin_b = bin(abs(b_dec))[2:]
     bin_res = bin(abs(a_dec) * abs(b_dec))[2:]
-    
-    # Ancho máximo basado en el resultado final para alinear todo a la derecha
     max_len = len(bin_res) + 4 
     
     linea_a = bin_a.rjust(max_len)
     linea_b = ("x " + bin_b).rjust(max_len)
     separador1 = ("-" * (len(bin_b) + 2)).rjust(max_len)
     
-    html = f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">
-{linea_a}
-{linea_b}
-<span style="color: #888;">{separador1}</span>
-"""
-    # Generar los productos parciales desplazados
+    html = f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">\n{linea_a}\n{linea_b}\n<span style="color: #888;">{separador1}</span>\n"""
+    
     for i, bit in enumerate(reversed(bin_b)):
-        if bit == '1':
-            pp = bin_a + (" " * i)
-        else:
-            pp = ("0" * len(bin_a)) + (" " * i)
+        if bit == '1': pp = bin_a + (" " * i)
+        else: pp = ("0" * len(bin_a)) + (" " * i)
         html += f"{pp.rjust(max_len)}\n"
         
     separador2 = ("-" * len(bin_res)).rjust(max_len)
     linea_res = bin_res.rjust(max_len)
-    
-    html += f"""<span style="color: #888;">{separador2}</span>
-<span style="color: #4b8bff; font-weight: bold;">{linea_res}</span></div>"""
-    
+    html += f"""<span style="color: #888;">{separador2}</span>\n<span style="color: #4b8bff; font-weight: bold;">{linea_res}</span></div>"""
     return html
 
 def division_binaria_visual_st(dividendo_dec, divisor_dec):
@@ -186,7 +175,6 @@ def division_binaria_visual_st(dividendo_dec, divisor_dec):
     
     dvd = bin(abs(dividendo_dec))[2:]
     dvs = bin(abs(divisor_dec))[2:]
-    
     cociente = ""
     residuo_actual = ""
     html_steps = ""
@@ -394,9 +382,31 @@ with tab_operaciones:
                 
                 st.write("") # Espacio
                 
-                # --- TEXTO PROCEDIMIENTO NORMAL ---
+                # --- TEXTO PROCEDIMIENTO NORMAL (Corregido y seguro) ---
                 proc = []
                 if base1 != "Decimal":
-                    proc.append(f"PASO 1: Convertir el primer número a Decimal:\n" + explicar_a_decimal(base1, num1, dec1) + "\n" + "="*40)
+                    texto_p1 = f"PASO 1: Convertir el primer número a Decimal:\n{explicar_a_decimal(base1, num1, dec1)}\n{'='*40}"
+                    proc.append(texto_p1)
+                
                 if base2 != "Decimal":
-                    proc.append(f"PASO 2
+                    texto_p2 = f"PASO 2: Convertir el segundo número a Decimal:\n{explicar_a_decimal(base2, num2, dec2)}\n{'='*40}"
+                    proc.append(texto_p2)
+                    
+                texto_p3 = f"PASO 3: Realizar la operación en Decimal:"
+                if operacion == "÷":
+                    texto_p3 += f"\n{dec1} ÷ {dec2} = {res_dec} (Cociente) y sobra {resto_dec} (Resto)"
+                else:
+                    texto_p3 += f"\n{dec1} {operacion} {dec2} = {res_dec}"
+                texto_p3 += f"\n{'='*40}"
+                proc.append(texto_p3)
+                
+                if base_res != "Decimal":
+                    texto_p4 = f"PASO 4: Convertir el resultado ({res_dec}) a {base_res}:\n{explicar_decimal_a(base_res, res_dec)}"
+                    proc.append(texto_p4)
+                else:
+                    proc.append(f"El resultado ya está en Decimal: {res_dec}")
+                
+                st.code("\n\n".join(proc), language="text")
+                
+        except ValueError:
+            st.error("❌ Hay un error. Revisa que los números escritos coincidan con las bases seleccionadas.")
