@@ -82,7 +82,7 @@ def explicar_valor_posicional(origen, destino, valor, numero_decimal):
 
 
 # ---------------------------------------------------------
-# FUNCIONES VISUALES DE OPERACIONES (HTML Oscuro)
+# FUNCIONES VISUALES DE OPERACIONES BINARIAS (HTML Oscuro)
 # ---------------------------------------------------------
 def suma_binaria_visual(a_dec, b_dec):
     bin_a = bin(abs(a_dec))[2:]
@@ -115,33 +115,46 @@ def suma_binaria_visual(a_dec, b_dec):
     return f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">
 <span style="color: #ff4b4b; font-weight: bold;">{linea_acarreos}</span>\n{linea_a}\n{linea_b}\n<span style="color: #888;">{separador}</span>\n<span style="color: #4b8bff; font-weight: bold;">{linea_res}</span></div>"""
 
-def resta_visual_st(a, b):
+def resta_binaria_visual_st(a_dec, b_dec):
     nota = ""
-    if b > a: 
-        a, b = b, a 
+    if abs(b_dec) > abs(a_dec): 
+        a_dec, b_dec = b_dec, a_dec
         nota = "<span style='color: #ffcc00; font-size: 14px;'>*Nota: El sustraendo era mayor. Se muestra la resta de los valores absolutos.</span>\n\n"
+        
+    bin_a = list(bin(abs(a_dec))[2:])
+    bin_b = list(bin(abs(b_dec))[2:])
+    max_len = max(len(bin_a), len(bin_b))
+    bin_a = ["0"] * (max_len - len(bin_a)) + bin_a
+    bin_b = ["0"] * (max_len - len(bin_b)) + bin_b
     
-    str_a = list(str(abs(a)))
-    str_b = list(str(abs(b)).zfill(len(str_a)))
-    prestamos = [''] * len(str_a)
-    valores_modificados = list(str_a)
+    A_orig = bin_a.copy()
+    B_orig = bin_b.copy()
+    modified_A = [int(x) for x in bin_a]
+    B = [int(x) for x in bin_b]
+    
+    borrows_display = [''] * max_len
     resultado = []
     
-    for i in range(len(str_a) - 1, -1, -1):
-        top, bot = int(valores_modificados[i]), int(str_b[i])
-        if top < bot:
-            top += 10
-            prestamos[i] = '10'
-            if i > 0:
-                valores_modificados[i-1] = str(int(valores_modificados[i-1]) - 1)
-                prestamos[i-1] = '-1' 
-        resultado.append(str(top - bot))
+    for i in range(max_len - 1, -1, -1):
+        if modified_A[i] < B[i]:
+            j = i - 1
+            while j >= 0 and modified_A[j] == 0:
+                modified_A[j] = 1
+                borrows_display[j] = '1'
+                j -= 1
+            if j >= 0:
+                modified_A[j] -= 1
+                borrows_display[j] = '0'
+            modified_A[i] += 2
+            borrows_display[i] = '10' # Representa el "2" en binario prestado
+        resultado.append(str(modified_A[i] - B[i]))
         
     resultado_final = "".join(resultado[::-1])
-    ancho = 4
-    str_prestamos = "  " + "".join([f"<span style='color: #ff4b4b; font-weight: bold;'>{p.rjust(ancho)}</span>" if p else " " * ancho for p in prestamos])
-    str_a_linea = "  " + "".join([c.rjust(ancho) for c in str_a])
-    str_b_linea = "- " + "".join([c.rjust(ancho) for c in str_b])
+    
+    ancho = 3
+    str_prestamos = "  " + "".join([f"<span style='color: #ff4b4b; font-weight: bold;'>{b.rjust(ancho)}</span>" if b else " " * ancho for b in borrows_display])
+    str_a_linea = "  " + "".join([c.rjust(ancho) for c in A_orig])
+    str_b_linea = "- " + "".join([c.rjust(ancho) for c in B_orig])
     separador = "-" * (len(str_a_linea) + 2)
     str_res = "  " + "".join([c.rjust(ancho) for c in resultado_final])
     
@@ -157,14 +170,41 @@ def multiplicacion_binaria_visual_st(a_dec, b_dec):
     linea_b = ("x " + bin_b).rjust(max_len)
     separador1 = ("-" * (len(bin_b) + 2)).rjust(max_len)
     
-    html = f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">\n{linea_a}\n{linea_b}\n<span style="color: #888;">{separador1}</span>\n"""
-    
+    pps_full = []
+    pps_display = []
     for i, bit in enumerate(reversed(bin_b)):
-        if bit == '1': pp = bin_a + (" " * i)
-        else: pp = ("0" * len(bin_a)) + (" " * i)
-        html += f"{pp.rjust(max_len)}\n"
+        if bit == '1':
+            pp_full = bin_a + ("0" * i)
+            pp_disp = bin_a + (" " * i)
+        else:
+            pp_full = ("0" * len(bin_a)) + ("0" * i)
+            pp_disp = ("0" * len(bin_a)) + (" " * i)
+        pps_full.append(pp_full.zfill(max_len))
+        pps_display.append(pp_disp.rjust(max_len))
         
-    separador2 = ("-" * len(bin_res)).rjust(max_len)
+    acarreos = [' '] * max_len
+    carry = 0
+    for col in range(max_len - 1, -1, -1):
+        col_sum = carry
+        for pp in pps_full:
+            col_sum += int(pp[col])
+        carry = col_sum // 2
+        if carry > 0 and col > 0:
+            char_carry = str(carry) if carry < 10 else chr(55 + carry)
+            acarreos[col - 1] = char_carry
+            
+    linea_acarreos = "".join(acarreos)
+    
+    html = f"""<div style="font-family: 'Courier New', monospace; font-size: 18px; background-color: #1e1e1e; color: white; padding: 20px; border-radius: 8px; line-height: 1.6; white-space: pre; border: 1px solid #444;">
+{linea_a}
+{linea_b}
+<span style="color: #888;">{separador1}</span>
+<span style="color: #ff4b4b; font-weight: bold;">{linea_acarreos}</span>
+"""
+    for pp in pps_display:
+        html += f"{pp}\n"
+        
+    separador2 = ("-" * max(len(bin_res), len(bin_a)+2)).rjust(max_len)
     linea_res = bin_res.rjust(max_len)
     html += f"""<span style="color: #888;">{separador2}</span>\n<span style="color: #4b8bff; font-weight: bold;">{linea_res}</span></div>"""
     return html
@@ -365,14 +405,14 @@ with tab_operaciones:
                 st.divider()
                 st.subheader("📝 Procedimiento de la Operación")
                 
-                # --- VISUALIZACIÓN MAGNÍFICA ---
+                # --- VISUALIZACIÓN MAGNÍFICA EN BINARIO ---
                 st.markdown(f"**🌟 Procedimiento Visual:**")
                 if operacion == "+":
                     st.markdown("*Nota: La suma visual se muestra en sistema Binario.*")
                     st.markdown(suma_binaria_visual(dec1, dec2), unsafe_allow_html=True)
                 elif operacion == "-":
-                    st.markdown("*Nota: La resta visual se muestra en sistema Decimal.*")
-                    st.markdown(resta_visual_st(dec1, dec2), unsafe_allow_html=True)
+                    st.markdown("*Nota: La resta visual se muestra en sistema Binario.*")
+                    st.markdown(resta_binaria_visual_st(dec1, dec2), unsafe_allow_html=True)
                 elif operacion == "×":
                     st.markdown("*Nota: La multiplicación visual se muestra en sistema Binario.*")
                     st.markdown(multiplicacion_binaria_visual_st(dec1, dec2), unsafe_allow_html=True)
@@ -382,7 +422,7 @@ with tab_operaciones:
                 
                 st.write("") # Espacio
                 
-                # --- TEXTO PROCEDIMIENTO NORMAL (Corregido y seguro) ---
+                # --- TEXTO PROCEDIMIENTO NORMAL ---
                 proc = []
                 if base1 != "Decimal":
                     texto_p1 = f"PASO 1: Convertir el primer número a Decimal:\n{explicar_a_decimal(base1, num1, dec1)}\n{'='*40}"
